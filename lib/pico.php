@@ -13,17 +13,18 @@ class Pico {
 		if($request_url != $script_url) $url = trim(preg_replace('/'. str_replace('/', '\/', str_replace('index.php', '', $script_url)) .'/', '', $request_url, 1), '/');
 
 		// Get the file path
-		if($url) $file = strtolower(CONTENT_DIR . $url);
+		if($url) $file = CONTENT_DIR . $url;
 		else $file = CONTENT_DIR .'index';
 
 		// Load the file
-		if(is_dir($file)) $file = CONTENT_DIR . $url .'/index.txt';
-		else $file .= '.txt';
+		if(is_dir($file)) $file = CONTENT_DIR . $url .'/index.md';
+		else $file .= '.md';
 
 		if(file_exists($file)) $content = file_get_contents($file);
-		else $content = file_get_contents(CONTENT_DIR .'404.txt');
+		else $content = file_get_contents(CONTENT_DIR .'404.md');
 
 		$meta = $this->read_file_meta($content);
+		$fields = $this->read_file_fields($content);
 		$content = preg_replace('#/\*.+?\*/#s', '', $content); // Remove comments and meta
 		$content = $this->parse_content($content);
 
@@ -44,6 +45,7 @@ class Pico {
 			'theme_url' => $settings['base_url'] .'/'. basename(THEMES_DIR) .'/'. $settings['theme'],
 			'site_title' => $settings['site_title'],
 			'meta' => $meta,
+      'fields' => $fields,
 			'content' => $content
 		));
 	}
@@ -62,6 +64,29 @@ class Pico {
 			'title'       => 'Title',
 			'description' => 'Description',
 			'robots'      => 'Robots'
+		);
+
+	 	foreach ($headers as $field => $regex){
+			if (preg_match('/^[ \t\/*#@]*' . preg_quote($regex, '/') . ':(.*)$/mi', $content, $match) && $match[1]){
+				$headers[ $field ] = trim(preg_replace("/\s*(?:\*\/|\?>).*/", '', $match[1]));
+			} else {
+				$headers[ $field ] = '';
+			}
+		}
+
+		return $headers;
+	}
+
+  function read_file_fields($content)
+	{
+		$headers = array(
+			'author'       => 'Author',
+			'date'       => 'Date',
+			'facebook' => 'Facebook',
+      'googleplus'      => 'GooglePlus',
+      'mixcloud' => 'Mixcloud',
+      'youtube' => 'YouTube',
+      'vimeo' => 'Vimeo',
 		);
 
 	 	foreach ($headers as $field => $regex){
